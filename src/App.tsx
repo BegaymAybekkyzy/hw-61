@@ -1,15 +1,16 @@
 import axios from 'axios';
-import { BASE_URL, COUNTRIES_LIST_URL, COUNTRY_NAME_URL } from './globalConstants.ts';
+import { BASE_URL, COUNTRIES_LIST_URL, COUNTRY_CODE_URL, COUNTRY_NAME_URL } from './globalConstants.ts';
 import { useCallback, useEffect, useState } from 'react';
-import { ApiCountry } from './types';
+import { ApiCountry, ICountry } from './types';
 import CountryList from './components/CountryList/CountryList.tsx';
+import CountryInfo from './components/CountryInfo/CountryInfo.tsx';
 
 const App = () => {
   const [listCountries, setListCountries] = useState<string[]>([]);
+  const [country, setCountry] = useState<ICountry | null>(null);
 
-  const countryListRequest = useCallback( async () => {
+  const countryListRequest = useCallback(async () => {
     const response = await axios.get<ApiCountry[]>(BASE_URL + COUNTRIES_LIST_URL);
-    console.log(response);
 
     const countries = response.data.map((country) => (
       country.name.common
@@ -22,24 +23,53 @@ const App = () => {
   }, [countryListRequest]);
 
   const countryRequest = async (countryName: string) => {
-    console.log(countryName);
-    const response = await axios.get<ApiCountry>(BASE_URL+ COUNTRY_NAME_URL + countryName);
+    const response = await axios.get<ICountry[]>(BASE_URL + COUNTRY_NAME_URL + countryName);
+    let countryData = response.data[0];
     console.log(response);
+
+    if(countryName === "China") {
+      countryData = response.data[2];
+    }
+
+    let borders: string[] | undefined = undefined;
+
+
+    if (countryData.borders) {
+      borders = await Promise.all(countryData.borders.map(async (border) => {
+        const resBorders = await axios.get(BASE_URL + COUNTRY_CODE_URL + border);
+
+
+        return resBorders.data[0].name.common;
+      }));
+    }
+
+    const country = {
+      name: {common: countryData.name.common},
+      capital: countryData.capital,
+      continents: countryData.continents,
+      population: countryData.population,
+      flags: countryData.flags,
+      borders: borders,
+    };
+
+    setCountry(country);
   };
-
-
 
   return (
     <>
       <div className="container py-3">
         <div className="row row-cols-2">
-          <div className="overflow-auto" style={{ height: '90vh' }}>
+          <div className="overflow-auto" style={{height: '90vh'}}>
             <CountryList listCountries={listCountries} countryRequest={countryRequest}/>
           </div>
 
-
+          <div>
+            {country ?
+              <CountryInfo country={country}/>
+              : <p className="text-center py-5">Select a country</p>
+            }
+          </div>
         </div>
-
       </div>
     </>
   );
