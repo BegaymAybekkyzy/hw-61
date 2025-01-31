@@ -24,35 +24,38 @@ const App = () => {
 
   const countryRequest = async (countryName: string) => {
     const response = await axios.get<ICountry[]>(BASE_URL + COUNTRY_NAME_URL + countryName);
-    let countryData = response.data[0];
-    console.log(response);
+    let countryData: ICountry | undefined = undefined;
 
-    if(countryName === "China") {
-      countryData = response.data[2];
+    for(const country of response.data) {
+      if (country.name.common === countryName) {
+        countryData = country;
+      }
     }
 
     let borders: string[] | undefined = undefined;
 
+    if(countryData) {
+      if (countryData.borders) {
+        borders = await Promise.all(countryData.borders.map(async (border) => {
+          const resBorders = await axios.get(BASE_URL + COUNTRY_CODE_URL + border);
 
-    if (countryData.borders) {
-      borders = await Promise.all(countryData.borders.map(async (border) => {
-        const resBorders = await axios.get(BASE_URL + COUNTRY_CODE_URL + border);
 
+          return resBorders.data[0].name.common;
+        }));
+      }
 
-        return resBorders.data[0].name.common;
-      }));
+      const country = {
+        name: {common: countryData.name.common},
+        capital: countryData.capital,
+        continents: countryData.continents,
+        population: countryData.population,
+        flags: countryData.flags,
+        borders: borders,
+      };
+
+      setCountry(country);
     }
 
-    const country = {
-      name: {common: countryData.name.common},
-      capital: countryData.capital,
-      continents: countryData.continents,
-      population: countryData.population,
-      flags: countryData.flags,
-      borders: borders,
-    };
-
-    setCountry(country);
   };
 
   return (
