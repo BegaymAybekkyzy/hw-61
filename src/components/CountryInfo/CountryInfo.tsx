@@ -18,7 +18,9 @@ const CountryInfo: React.FC<Props> = ({country}) => {
           </div>
 
           <div className="col-7">
-            <img src={country.flags.png} alt={country.flags.alt}/>
+            <div className="border border-2">
+              <img className="d-block w-100" src={country.flags.png} alt={country.flags.alt}/>
+            </div>
           </div>
         </div>
 
